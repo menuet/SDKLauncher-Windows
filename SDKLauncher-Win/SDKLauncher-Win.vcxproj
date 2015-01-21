@@ -92,7 +92,7 @@ cscript CopyResources.js</Command>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
-      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\include;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ePub3;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\Prebuilt\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Program Files %28x86%29\Visual Leak Detector\include;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\include;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ePub3;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\Prebuilt\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
