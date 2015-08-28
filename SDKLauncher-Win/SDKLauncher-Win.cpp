@@ -136,5 +136,6 @@ BOOL CSDKLauncherWinApp::InitInstance()
 
 }
 
+// TODO - why do we need to do this? Looks like asking for trouble...
 #pragma init_seg(compiler)
 _DEBUG_STATE _DEBUG_STATE::ds;

@@ -80,20 +80,20 @@ public:
         builder.setView(editText);
         builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
 
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-        if (which == DialogInterface.BUTTON_POSITIVE) {
-        String title = editText.getText().toString();
-        try {
-        JSONObject bookmarkJson = new JSONObject(bookmarkData);
-        BookmarkDatabase.getInstance().addBookmark(mContainer.getName(), title,
-        bookmarkJson.getString("idref"), bookmarkJson.getString("contentCFI"));
-        }
-        catch (JSONException e) {
-        Log.e(TAG, "" + e.getMessage(), e);
-        }
-        }
-        }
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (which == DialogInterface.BUTTON_POSITIVE) {
+                    String title = editText.getText().toString();
+                    try {
+                        JSONObject bookmarkJson = new JSONObject(bookmarkData);
+                        BookmarkDatabase.getInstance().addBookmark(mContainer.getName(), title,
+                        bookmarkJson.getString("idref"), bookmarkJson.getString("contentCFI"));
+                    }
+                    catch (JSONException e) {
+                        Log.e(TAG, "" + e.getMessage(), e);
+                    }
+                }
+            }
         });
         builder.setNegativeButton(android.R.string.cancel, null);
         builder.show();
@@ -106,26 +106,23 @@ public:
         /*
         try
         {
-        PaginationInfo paginationInfo = PaginationInfo.fromJson(currentPagesInfo);
-        List<Page> openPages = paginationInfo.getOpenPages();
-        if (!openPages.isEmpty())
-        {
-        final Page page = openPages.get(0);
+            PaginationInfo paginationInfo = PaginationInfo.fromJson(currentPagesInfo);
+            List<Page> openPages = paginationInfo.getOpenPages();
+            if (!openPages.isEmpty()) {
+                final Page page = openPages.get(0);
 
-        runOnUiThread(new Runnable()
-        {
-        public void run()
-        {
-        mPageInfo.setText(getString(R.string.page_x_of_y,
-        page.getSpineItemPageIndex() + 1,
-        page.getSpineItemPageCount()));
-        SpineItem spineItem = mPackage.getSpineItem(page.getIdref());
-        boolean isFixedLayout = spineItem.isFixedLayout();
-        mWebview.getSettings().setBuiltInZoomControls(isFixedLayout);
-        mWebview.getSettings().setDisplayZoomControls(false);
-        }
-        });
-        }
+                runOnUiThread(new Runnable() {
+                    public void run() {
+                        mPageInfo.setText(getString(R.string.page_x_of_y,
+                        page.getSpineItemPageIndex() + 1,
+                        page.getSpineItemPageCount()));
+                        SpineItem spineItem = mPackage.getSpineItem(page.getIdref());
+                        boolean isFixedLayout = spineItem.isFixedLayout();
+                        mWebview.getSettings().setBuiltInZoomControls(isFixedLayout);
+                        mWebview.getSettings().setDisplayZoomControls(false);
+                    }
+                });
+            }
         }
         catch (JSONException e)
         {
@@ -150,8 +147,8 @@ public:
         //Log.d(TAG, "onMediaOverlayStatusChanged:" + status);
         //this should be real json parsing if there will be more data that needs to be extracted
 
-        /*if (status.indexOf("isPlaying") > -1){
-        mIsMoPlaying = status.indexOf("\"isPlaying\":true") > -1;
+        /*if (status.indexOf("isPlaying") > -1) {
+            mIsMoPlaying = status.indexOf("\"isPlaying\":true") > -1;
         }
 
         invalidateOptionsMenu();*/

@@ -196,6 +196,7 @@ BOOL CSDKLauncherWinDlg::OnInitDialog()
     m_explorer.Navigate(L"http://localhost:5000/reader.html", NULL, NULL, NULL, NULL);
 
     _DEBUG_STATE::setMemCheckPoint();	// the memory state is stored here, to filter-out static memory leaks
+
     return TRUE;  // return TRUE  unless you set the focus to a control
 }
 
@@ -332,7 +333,7 @@ void CSDKLauncherWinDlg::OnFileOpenepub3file()
         std::string path(pszConvertedAnsiString);
         
         try{
-        g_cpp2ReadiumJS.on_actionOpen_ePub3(path);
+			g_cpp2ReadiumJS.openEPub3(path);
         }
         catch (std::exception& rEx)
         {

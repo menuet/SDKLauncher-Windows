@@ -54,7 +54,6 @@ void ReadiumJSApi::digInto(const NavigationList& list, TOCEntry& rOut)
 
 void ReadiumJSApi::getTOCList(TOCEntry &rOut)
 {
-    std::list<std::pair<std::string, std::string> > lst;
     if (!pkg)
         return;
 
@@ -66,53 +65,31 @@ void ReadiumJSApi::getTOCList(TOCEntry &rOut)
     digInto(list, rOut);
 }
 
-std::list<std::pair<std::string, std::string> > ReadiumJSApi::getSpineList()
+std::list<std::pair<std::string, std::string>> ReadiumJSApi::getSpineList()
 {
-//	CSingleLock lock(&g_cs, TRUE);
 
     std::list<std::pair<std::string, std::string> > ret;
     if (!pkg)
         return ret;
     
-    
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    size_t idx = 0;
+    size_t                  idx = 0;
     shared_ptr<SpineItem>   pSpineItem = pkg->SpineItemAt(idx++);
-    //listTOC->clear();
-    //listTOC->addItem(new QListWidgetItem());
+
     while (pSpineItem != 0)
     {
-        QJsonObject curItem;
+        json::Object curItem;
         shared_ptr<ManifestItem>    manifestItem = pSpineItem->ManifestItem();
-        //qDebug() << pSpineItem->Title().c_str();
-        //pSpineItem->Title();	// TOC title
+ 
         if (manifestItem)
         {
-            //qDebug() << QString(manifestItem->BaseHref().c_str());
             ret.push_back(std::make_pair(manifestItem->BaseHref().c_str(), manifestItem->BaseHref().c_str()));
-            //listTOC->addItem(QString(manifestItem->BaseHref().c_str()));
-            //curItem["href"] = QString(manifestItem->BaseHref().c_str());	//[dict setObject : _href forKey : @"href"];
         }
-        //else
-        //curItem["href"] = QString("");
 
-
-        //curItem["idref"] = QString(pSpineItem->Idref().c_str());	//[dict setObject : _idref forKey : @"idref"];
-        pSpineItem = pkg->SpineItemAt(idx++);
+        pSpineItem = pkg->SpineItemAt(idx++);   //[dict setObject : _idref forKey : @"idref"];
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     return ret;
-    // TOC TOC TOC
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //shared_ptr<NavigationTable> toc = pkg->TableOfContents();
-    //const NavigationList& list = toc->Children();
-    ////qDebug() << toc->SourceHref().c_str();
-    //for (NavigationList::const_iterator v = list.begin(); v != list.end(); ++v)
-    //{
-    //	//qDebug() << (*v)->Title().c_str();
-    //}
 }
 
 std::string ReadiumJSApi::getBasePath()
@@ -137,7 +114,7 @@ std::string ReadiumJSApi::getBookTitle()
 
 static bool m_ignoreRemainingErrors = false;
 
-void ReadiumJSApi::on_actionOpen_ePub3(std::string path)	//QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"), "", tr("Files (*.epub)"));
+void ReadiumJSApi::openEPub3(std::string path)	
 {
     m_ignoreRemainingErrors = false;
 
@@ -154,17 +131,12 @@ void ReadiumJSApi::on_actionOpen_ePub3(std::string path)	//QString fileName = QF
                 auto pkgs = container->Packages();
                 if (pkgs.size() <= 0)
                 {
-                    //QMessageBox messageBox;
-                    //messageBox.critical(0, "Error", "ReadiumSDK: No packages found !");
-                    //messageBox.setFixedSize(500, 200);
-                    //messageBox.exec();
+					MessageBox(NULL, _T("ReadiumSDK: No packages found !"), _T("Error"), MB_OK);
                     return;
                 }
                 pkg = pkgs[0];
             }
-            //int contentLength = container->getArchiveInfoSize("titlepage.xhtml");
 
-            //OpenPageRequest req = OpenPageRequest::fromContentUrl("", "chapter_001.xhtml");//TODO:
             // by requesting an empty URL we effectively request the first spine item, usually the title page
             OpenPageRequest req = OpenPageRequest("", 0, "", "", "", "");
 
@@ -173,31 +145,7 @@ void ReadiumJSApi::on_actionOpen_ePub3(std::string path)	//QString fileName = QF
             DWORD openBookStartedMs = GetTickCount();
             openBook(pkg, set, req);
             DWORD EndTimeTimeMs = GetTickCount();
-            
-            //char buf[1024];wsprintf((LPWSTR)buf, L"TotalTime:%d ms\n Container::OpenContainer:%d  ms\nopenBook:%d  ms\n", (EndTimeTimeMs - beginTimeMs), (openBookStartedMs - beginTimeMs), (EndTimeTimeMs - containerOpened));
-            //AfxMessageBox((LPCTSTR)buf);
-            
-            //BYTE* bytes = 0;
-            //ULONGLONG pSize = 0;
-            //getByteResp("/chapter_001.xhtml", &bytes, &pSize);
-            //delete[]bytes;
-            //getByteResp("/chapter_002.xhtml", &bytes, &pSize);
-            //delete[]bytes;
-            //getByteResp("/chapter_003.xhtml", &bytes, &pSize);
-
-            //openContentUrl("chapter_001.xhtml", "");
-            
-            //ReadiumJsApi.openContentUrl((*list.begin())->Title().c_str(), "");
-            //unique_ptr<ePub3::ByteStream> byteStream = pkg->ReadStreamForItemAtPath("titlepage.xhtml");
-
-            //if (pkg)
-            //{
-                //CollectionPtr previewCollection = pkg->PreviewCollection();
-                //unique_ptr<ePub3::ByteStream> byteStream1 = previewCollection->ReadStreamForItemAtPath("titlepage.xhtml");
-            //}
         }
-
-
     }
     //catch (ePub3::epub_spec_error err)
     //{
@@ -205,11 +153,8 @@ void ReadiumJSApi::on_actionOpen_ePub3(std::string path)	//QString fileName = QF
     //}
     catch (...)
     {
-        //qDebug() << "Exception!!!";
         throw;
     }
-
-    //openContentUrl("chapter_001.xhtml", "");
     
 }
 
@@ -219,9 +164,12 @@ bool ReadiumJSApi::getByteResp(std::string sURI, BYTE** bytes, ULONGLONG* pSize)
         return false;
     }
     
-std:string strr = sURI.substr(1);
-    if (strr.length() == 0) return false;
-    unique_ptr<ByteStream> stream = pkg->ReadStreamForRelativePath(strr);
+	std::string str = sURI.substr(1);
+
+    if (str.length() == 0) 
+		return false;
+
+    unique_ptr<ByteStream> stream = pkg->ReadStreamForRelativePath(str);
     if (stream)
     {
         ByteStream::size_type bytesAvailable = stream->BytesAvailable();
@@ -238,26 +186,26 @@ std:string strr = sURI.substr(1);
     return false;
 }
 
-QJsonArray ReadiumJSApi::getJSON(shared_ptr<const ePub3::SMILData::Sequence> seqBody)
+json::Array ReadiumJSApi::getJSON(shared_ptr<const ePub3::SMILData::Sequence> seqBody)
 {
-    QJsonArray ret;
+    json::Array ret;
     //TODO: populateChildren
     const shared_vector<const ePub3::SMILData::TimeContainer>::size_type k = seqBody->GetChildrenCount();
     shared_vector<const SMILData::TimeContainer>::size_type i = 0;
     for (; i < k; ++i)
     {
         shared_ptr<const SMILData::TimeContainer> timeContainer = seqBody->GetChild(i);
-        QJsonObject obj;
+        json::Object obj;
 
         if (timeContainer->IsParallel())
         {
             auto para = std::dynamic_pointer_cast<const ePub3::SMILData::Parallel>(timeContainer);
             auto audio = para->Audio();
             auto text = para->Text();
-            QJsonArray ret1;
+            json::Array ret1;
             if (audio)
             {
-                QJsonObject obj1;
+                json::Object obj1;
 
                 {
                     std::ostringstream stringStream;
@@ -267,8 +215,8 @@ QJsonArray ReadiumJSApi::getJSON(shared_ptr<const ePub3::SMILData::Sequence> seq
                     obj1["clipEnd"] = copyOfStr;
                 }
 
-                obj1["nodeType"] = QString("audio");
-                obj1["src"] = QString(audio->SrcFile().c_str());	//"audio\/mobydick_001_002_melville.mp4",
+                obj1["nodeType"] = std::string("audio");
+                obj1["src"] = std::string(audio->SrcFile().c_str());	//"audio\/mobydick_001_002_melville.mp4",
 
                 {
                     std::ostringstream stringStream;
@@ -281,30 +229,30 @@ QJsonArray ReadiumJSApi::getJSON(shared_ptr<const ePub3::SMILData::Sequence> seq
             }
             if (text)
             {
-                QJsonObject obj2;
+                json::Object obj2;
 
-                obj2["srcFile"] = QString(text->SrcFile().c_str());				//"chapter_002.xhtml",
-                obj2["srcFragmentId"] = QString(text->SrcFragmentId().c_str());	//"c02h01",
-                obj2["nodeType"] = QString("text");
-                obj2["src"] = QString(text->SrcFile().c_str()) + "#" + QString(text->SrcFragmentId().c_str());// "chapter_002.xhtml#c02h01"
+                obj2["srcFile"] = std::string(text->SrcFile().c_str());				//"chapter_002.xhtml",
+                obj2["srcFragmentId"] = std::string(text->SrcFragmentId().c_str());	//"c02h01",
+                obj2["nodeType"] = std::string("text");
+                obj2["src"] = std::string(text->SrcFile().c_str()) + "#" + std::string(text->SrcFragmentId().c_str());    // "chapter_002.xhtml#c02h01"
 
                 ret1.push_back(obj2);
             }
             obj["children"] = ret1;
-            obj["nodeType"] = QString("par");
+            obj["nodeType"] = std::string("par");
         }
         else if (timeContainer->IsSequence())
         {
             auto sequence = std::dynamic_pointer_cast<const ePub3::SMILData::Sequence>(timeContainer);
-            obj["textref"] = QString(sequence->TextRefFile().c_str());
+            obj["textref"] = std::string(sequence->TextRefFile().c_str());
             //obj["textref"] =
-            QJsonArray children = getJSON(sequence);
+            json::Array children = getJSON(sequence);
             obj["children"] = children;
-            obj["nodeType"] = QString("seq");
+            obj["nodeType"] = std::string("seq");
         }
 
-        //obj["nodeType"] = QString(timeContainer->Type().c_str());
-        obj["epubtype"] = QString("");
+        //obj["nodeType"] = std::string(timeContainer->Type().c_str());
+        obj["epubtype"] = std::string("");
 
         //"textref" : "",
         //Sequence
@@ -317,38 +265,36 @@ QJsonArray ReadiumJSApi::getJSON(shared_ptr<const ePub3::SMILData::Sequence> seq
     }
     return ret;
 }
-QJsonObject ReadiumJSApi::getPackageJSON(PackagePtr pckg)
+json::Object ReadiumJSApi::getPackageJSON(PackagePtr pckg)
 {
-    QJsonObject obj;
-#if _USE_READIUM
+    json::Object obj;
 
     // Level 0
     {
-        obj["rootUrl"] = QString("/");			//[dict setObject : @"/" forKey:@"rootUrl"];
-        obj["rendition_layout"] = QString("");	//[dict setObject : _rendition_layout forKey : @"rendition_layout"];
-        obj["rendition_flow"] = QString("");	//[dict setObject : _rendition_flow forKey : @"rendition_flow"];
+        obj["rootUrl"] = std::string("/");			//[dict setObject : @"/" forKey:@"rootUrl"];
+        obj["rendition_layout"] = std::string("");	//[dict setObject : _rendition_layout forKey : @"rendition_layout"];
+        obj["rendition_flow"] = std::string("");	//[dict setObject : _rendition_flow forKey : @"rendition_flow"];
 
-        QJsonObject spine;
+        json::Object spine;
 
-        QJsonArray spineItems;
+        json::Array spineItems;
 
         size_t idx = 0;
         shared_ptr<SpineItem>   pSpineItem = pckg->SpineItemAt(idx++);
         while (pSpineItem != 0)
         {
-            QJsonObject curItem;
+            json::Object curItem;
             shared_ptr<ManifestItem>    manifestItem = pSpineItem->ManifestItem();
             if (manifestItem)
             {
-                //qDebug() << QString(manifestItem->BaseHref().c_str());
-                curItem["href"] = QString(manifestItem->BaseHref().c_str());	//[dict setObject : _href forKey : @"href"];
+                 curItem["href"] = std::string(manifestItem->BaseHref().c_str());	//[dict setObject : _href forKey : @"href"];
             }
             else
-                curItem["href"] = QString("");
+                curItem["href"] = std::string("");
 
 
-            curItem["idref"] = QString(pSpineItem->Idref().c_str());	//[dict setObject : _idref forKey : @"idref"];
-            curItem["media_type"] = QString(pSpineItem->ManifestItem()->MediaType().c_str());	//[dict setObject : _idref forKey : @"idref"];
+            curItem["idref"] = std::string(pSpineItem->Idref().c_str());	//[dict setObject : _idref forKey : @"idref"];
+            curItem["media_type"] = std::string(pSpineItem->ManifestItem()->MediaType().c_str());	//[dict setObject : _idref forKey : @"idref"];
 
             //pSpineItem->Spread()
             //enum class PageSpread
@@ -360,38 +306,37 @@ QJsonObject ReadiumJSApi::getPackageJSON(PackagePtr pckg)
             //};
 
 
-            curItem["page_spread"] = QString("");//[dict setObject : _page_spread forKey : @"page_spread"];
-            curItem["rendition_layout"] = QString("");;//[dict setObject : _rendition_layout forKey : @"rendition_layout"];
-            curItem["rendition_spread"] = QString("");;//[dict setObject : _rendition_spread forKey : @"rendition_spread"];
-            curItem["rendition_flow"] = QString("");;//[dict setObject : _rendition_flow forKey : @"rendition_flow"];
-            curItem["media_overlay_id"] = QString("");;//[dict setObject : _media_overlay_id forKey : @"media_overlay_id"];
+            curItem["page_spread"] = std::string("");       //[dict setObject : _page_spread forKey : @"page_spread"];
+            curItem["rendition_layout"] = std::string("");  //[dict setObject : _rendition_layout forKey : @"rendition_layout"];
+            curItem["rendition_spread"] = std::string("");  //[dict setObject : _rendition_spread forKey : @"rendition_spread"];
+            curItem["rendition_flow"] = std::string("");    //[dict setObject : _rendition_flow forKey : @"rendition_flow"];
+            curItem["media_overlay_id"] = std::string("");  //[dict setObject : _media_overlay_id forKey : @"media_overlay_id"];
             spineItems.push_back(curItem);
 
             pSpineItem = pckg->SpineItemAt(idx++);
         }
 
         spine["items"] = spineItems;
-        spine["direction"] = QString("default"); //[dict setObject : _direction forKey : @"direction"];
-        obj["spine"] = spine;//[dict setObject : [_spine toDictionary] forKey : @"spine"];
+        spine["direction"] = std::string("default"); //[dict setObject : _direction forKey : @"direction"];
+        obj["spine"] = spine;                        //[dict setObject : [_spine toDictionary] forKey : @"spine"];
 
 
-
-        QJsonObject media_overlay;
+        json::Object media_overlay;
 
         {
             std::shared_ptr<MediaOverlaysSmilModel>   smilModel = pckg->MediaOverlaysSmilModel();
             std::vector<std::shared_ptr<SMILData>>::size_type n = smilModel->GetSmilCount();
-            QJsonArray smil_models;
+            json::Array smil_models;
             std::vector<std::shared_ptr<SMILData>>::size_type i = 0;
             for (i = 0; i < n; ++i)
             {
                 std::shared_ptr<SMILData> curSmil = smilModel->GetSmil(i);
-                QJsonObject smilModel;
+                json::Object smilModel;
 
                 if (curSmil->XhtmlSpineItem())
-                    smilModel["spineItemId"] = QString(curSmil->XhtmlSpineItem()->Idref().c_str());
+                    smilModel["spineItemId"] = std::string(curSmil->XhtmlSpineItem()->Idref().c_str());
                 else
-                    smilModel["spineItemId"] = QString("");
+                    smilModel["spineItemId"] = std::string("");
 
                 //smilModel["id"]
 
@@ -403,24 +348,22 @@ QJsonObject ReadiumJSApi::getPackageJSON(PackagePtr pckg)
 
                 if (curSmil->SmilManifestItem())
                 {
-                    smilModel["id"] = QString(curSmil->SmilManifestItem()->Identifier().c_str());
-                    smilModel["href"] = QString(curSmil->SmilManifestItem()->Href().c_str());
+                    smilModel["id"] = std::string(curSmil->SmilManifestItem()->Identifier().c_str());
+                    smilModel["href"] = std::string(curSmil->SmilManifestItem()->Href().c_str());
                 }
                 else
                 {
-                    smilModel["id"] = QString("");
-                    smilModel["href"] = QString("fake.smil");
+                    smilModel["id"] = std::string("");
+                    smilModel["href"] = std::string("fake.smil");
                 }
 
-                smilModel["smilVersion"] = QString("3.0");
+                smilModel["smilVersion"] = std::string("3.0");
                 //[dict setObject : self.children forKey : @"children"];
 
 
                 shared_ptr<const ePub3::SMILData::Sequence> seqBody = curSmil->Body();
-                QJsonArray arrChildren = getJSON(seqBody);
+                json::Array arrChildren = getJSON(seqBody);
                 smilModel["children"] = arrChildren;
-                //qDebug() << smilModel;
-
                 smil_models.push_back(smilModel);
             }
 
@@ -443,8 +386,8 @@ QJsonObject ReadiumJSApi::getPackageJSON(PackagePtr pckg)
             }*/
             media_overlay["smil_models"] = smil_models;
 
-            QJsonArray skippables;
-            QJsonArray escapables;
+            json::Array skippables;
+            json::Array escapables;
 
             smilModel = pckg->MediaOverlaysSmilModel();
             
@@ -467,22 +410,22 @@ QJsonObject ReadiumJSApi::getPackageJSON(PackagePtr pckg)
             }
             media_overlay["skippables"] = skippables;//[dict setObject : self.skippables forKey : @"skippables"];
             media_overlay["escapables"] = escapables;//[dict setObject : self.escapables forKey : @"escapables"];
-            media_overlay["duration"] = QString(pckg->MediaOverlays_DurationTotal().c_str()); //[dict setObject : self.duration forKey : @"duration"]; = 1403.5
-            media_overlay["narrator"] = QString(pckg->MediaOverlays_Narrator().c_str());//[dict setObject : self.narrator forKey : @"narrator"];
-            media_overlay["activeClass"] = QString(pckg->MediaOverlays_ActiveClass().c_str());//[dict setObject : self.activeClass forKey : @"activeClass"];, "activeClass" : "-epub-media-overlay-active",
-            media_overlay["playbackActiveClass"] = QString(pckg->MediaOverlays_PlaybackActiveClass().c_str());//[dict setObject : self.playbackActiveClass forKey : @"playbackActiveClass"];
+            media_overlay["duration"] = std::string(pckg->MediaOverlays_DurationTotal().c_str()); //[dict setObject : self.duration forKey : @"duration"]; = 1403.5
+            media_overlay["narrator"] = std::string(pckg->MediaOverlays_Narrator().c_str());//[dict setObject : self.narrator forKey : @"narrator"];
+            media_overlay["activeClass"] = std::string(pckg->MediaOverlays_ActiveClass().c_str());//[dict setObject : self.activeClass forKey : @"activeClass"];, "activeClass" : "-epub-media-overlay-active",
+            media_overlay["playbackActiveClass"] = std::string(pckg->MediaOverlays_PlaybackActiveClass().c_str());//[dict setObject : self.playbackActiveClass forKey : @"playbackActiveClass"];
         }
         obj["media_overlay"] = media_overlay; //[dict setObject : [_mediaOverlay toDictionary] forKey : @"media_overlay"];
 
         return obj;
     }
-
-#endif		
+		
     return obj;
 }
+
 void ReadiumJSApi::openBook(PackagePtr pckg, ViewerSettings viewerSettings, OpenPageRequest openPageRequestData)
 {
-    QJsonObject openBookData;
+    json::Object openBookData;
     try {
         openBookData["package"] = getPackageJSON(pckg);
         openBookData["settings"] = viewerSettings.toJSON();
@@ -495,15 +438,16 @@ void ReadiumJSApi::openBook(PackagePtr pckg, ViewerSettings viewerSettings, Open
     //catch (JSONException e) {
     //	Log.e(TAG, "" + e.getMessage(), e);
     //}
+
     std::string str = json::Serialize(openBookData);
     loadJSOnReady("ReadiumSDK.reader.openBook(" + str + ");");
-    //loadJSOnReady("alert('Hi!');");
 }
+
 void ReadiumJSApi::updateSettings(ViewerSettings viewerSettings)
 {
     try {
         std::string str = json::Serialize(viewerSettings.toJSON());
-        loadJSOnReady(QString("ReadiumSDK.reader.updateSettings(") + str + ");");
+        loadJSOnReady(std::string("ReadiumSDK.reader.updateSettings(") + str + ");");
     }
     //catch (JSONException e) {
     //	Log.e(TAG, "" + e.getMessage(), e);
@@ -513,94 +457,62 @@ void ReadiumJSApi::updateSettings(ViewerSettings viewerSettings)
         //	Log.e(TAG, "" + e.getMessage(), e);
     }
 }
-void ReadiumJSApi::openContentUrl(QString href, QString baseUrl)
+
+void ReadiumJSApi::openContentUrl(std::string href, std::string baseUrl)
 {
-    //baseUrl = getBasePath();	// fast fix
     loadJSOnReady("ReadiumSDK.reader.openContentUrl(\"" + href + "\", \"" + baseUrl + "\");");
 }
-void ReadiumJSApi::openSpineItemPage(QString idRef, int page)
+
+void ReadiumJSApi::openSpineItemPage(std::string idRef, int page)
 {
     loadJSOnReady("ReadiumSDK.reader.openSpineItemPage(\"" + idRef + "\", " + std::to_string(page) + ");");
 }
-void ReadiumJSApi::openSpineItemElementCfi(QString idRef, QString elementCfi)
+
+void ReadiumJSApi::openSpineItemElementCfi(std::string idRef, std::string elementCfi)
 {
     loadJSOnReady("ReadiumSDK.reader.openSpineItemElementCfi(\"" + idRef + "\",\"" + elementCfi + "\");");
 }
+
 void ReadiumJSApi::nextMediaOverlay()
 {
     loadJSOnReady("ReadiumSDK.reader.nextMediaOverlay();");
 }
+
 void ReadiumJSApi::previousMediaOverlay()
 {
     loadJSOnReady("ReadiumSDK.reader.previousMediaOverlay();");
 }
+
 void ReadiumJSApi::toggleMediaOverlay()
 {
     bMediaOverlayToggled = (bMediaOverlayToggled) ? false : true;
     loadJSOnReady("ReadiumSDK.reader.toggleMediaOverlay();");
 }
+
 void ReadiumJSApi::turnMediaOverlayOff()
 {
     if (bMediaOverlayToggled)
         toggleMediaOverlay();
-
 }
+
 void ReadiumJSApi::bookmarkCurrentPage() 
 {
     loadJS("window.LauncherUI.getBookmarkData(ReadiumSDK.reader.bookmarkCurrentPage());");
 }
+
 void ReadiumJSApi::openPageLeft() 
 {
     loadJS("ReadiumSDK.reader.openPageLeft();");
 }
+
 void ReadiumJSApi::openPageRight()
 {
     loadJS("ReadiumSDK.reader.openPageRight();");
 }
 
 
-void ReadiumJSApi::loadJS(QString jScript)
+void ReadiumJSApi::loadJS(std::string jScript)
 {
-
-#if 0	
-    QAxObject* doc = WebBrowser->querySubObject("Document()");
-    //IDispatch* Disp;
-    IDispatch* winDoc = NULL;
-    IHTMLDocument2* document = NULL;
-
-    //332C4425-26CB-11D0-B483-00C04FD90119 IHTMLDocument2
-    //25336920-03F9-11CF-8FD0-00AA00686F13 HTMLDocument
-    doc->queryInterface(QUuid("{332C4425-26CB-11D0-B483-00C04FD90119}"), (void**)(&winDoc));
-    if (winDoc) {
-        document = NULL;
-        winDoc->QueryInterface(IID_IHTMLDocument2, (void**)&document);
-        IHTMLWindow2 *window = NULL;
-        document->get_parentWindow(&window);
-        QAxObject* documentWin = new QAxObject(document, WebBrowser);
-        QAxObject* jScriptWin = new QAxObject(window, WebBrowser);
-        //connect(jScriptWin, SIGNAL(exception(int, QString, QString, QString)), this, SLOT(printWinException(int, QString, QString, QString)));
-        //jScriptInitialized = true;
-
-        QVariantList params;
-        //params.append(javaScript);
-        //params.append("alert('Hi')");
-        params.append("JScript");
-        //QVariant result = jScriptWin->dynamicCall("execScript(QString, QString)", params);
-        VARIANT var;
-        QString strCode = jScript;
-        QString stringLang("JScript");
-        BSTR bstrCode = SysAllocString(strCode.toStdWString().c_str());
-        BSTR bstrLang = SysAllocString(stringLang.toStdWString().c_str());
-        window->execScript(bstrCode, bstrLang, &var);
-        SysFreeString(bstrCode);
-        SysFreeString(bstrLang);
-        document->Release();
-        winDoc->Release();
-    }
-    else {
-        //qDebug() << "COULD NOT GET DOCUMENT OBJECT! Aborting";
-    }
-#else
     if (WebBrowser)
     {
         CComPtr<IDispatch> pDispDoc = WebBrowser->get_Document();
@@ -623,43 +535,37 @@ void ReadiumJSApi::loadJS(QString jScript)
             }
         }
     }
-
-
-    //QAxObject* qv = WebBrowser->querySubObject("Document()");
-    //QAxObject* qv1 = qv->querySubObject("parentWindow");
-    //QString script = "(function(){" + jScript + "})()";
-    //qDebug() << script;
-
-    /*{
-    QString filename = "Data.txt";
-    QFile file(filename);
-    if (file.open(QIODevice::ReadWrite)) {
-    QTextStream stream(&file);
-    stream << script << endl;
-    }
-    file.close();
-    }*/
-
-    //QVariantList params;
-    //params.append("alert('hello')");
-    //params.append("JScript");
-    //QVariant result = qv1->dynamicCall("execScript(QString, QString)", params);
-    //qv1->dynamicCall("execScript(Qstring)", script, "javascript");
-    //qv1->dynamicCall("execScript(Qstring, QString)", script, "JScript");	//, "javascript"
-    //qv1->deleteLater();
-    //qv->deleteLater();
-
-    //Log.i(TAG, "loadJS: "+jScript);
-    //mJSLoader.loadJS("javascript:(function(){" + jScript + "})()");
-    //pWebBrowser->dynamicCall(script);
-
-#endif
 }
-void ReadiumJSApi::loadJSOnReady(QString jScript)
+
+void ReadiumJSApi::loadJSOnReady(std::string jScript)
 {
     loadJS("$(document).ready(function () {" + jScript + "});");
 }
 
+
+void ReadiumJSApi::initReadiumSDK()
+{
+    //using namespace	ePub3;
+
+    ePub3::ErrorHandlerFn launcherErrorHandler = LauncherErrorHandler;
+    ePub3::SetErrorHandler(launcherErrorHandler);
+    
+    ePub3::InitializeSdk();
+    ePub3::PopulateFilterManager();
+    //ePub3::ContentModuleManager::Instance();
+}
+
+ReadiumJSApi::ReadiumJSApi(CExplorer*pWebBrowser_):WebBrowser(pWebBrowser_), bMediaOverlayToggled(false)
+{
+}
+
+ReadiumJSApi::ReadiumJSApi():WebBrowser(0), bMediaOverlayToggled(false)
+{
+}
+
+/**
+ *  External function to handle errors in the EPUB3 library
+ */
 bool LauncherErrorHandler(const ePub3::error_details& err)
 {
     const char * msg = err.message();
@@ -706,25 +612,4 @@ bool LauncherErrorHandler(const ePub3::error_details& err)
     }
 
     return true;
-    // never throws an exception
-    //return ePub3::DefaultErrorHandler(err);
-}
-
-
-void ReadiumJSApi::initReadiumSDK()
-{
-    //using namespace	ePub3;
-
-    ePub3::ErrorHandlerFn launcherErrorHandler = LauncherErrorHandler;
-    ePub3::SetErrorHandler(launcherErrorHandler);
-    
-    ePub3::InitializeSdk();
-    ePub3::PopulateFilterManager();
-    //ePub3::ContentModuleManager::Instance();
-}
-ReadiumJSApi::ReadiumJSApi(CExplorer*pWebBrowser_):WebBrowser(pWebBrowser_), bMediaOverlayToggled(false)
-{
-}
-ReadiumJSApi::ReadiumJSApi():WebBrowser(0), bMediaOverlayToggled(false)
-{
 }
