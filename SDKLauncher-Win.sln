@@ -1,14 +1,14 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.31101.0
+VisualStudioVersion = 12.0.30324.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SDKLauncher-Win", "SDKLauncher-Win\SDKLauncher-Win.vcxproj", "{ACFC4B2E-1A56-4258-8BA9-837001386138}"
 	ProjectSection(ProjectDependencies) = postProject
 		{033B6AAA-D741-4696-B687-F5BA0520436F} = {033B6AAA-D741-4696-B687-F5BA0520436F}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ePub3", "readium-sdk\Platform\Windows\ReadiumSDK.vcxproj", "{033B6AAA-D741-4696-B687-F5BA0520436F}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ePub3", "readium-sdk\Platform\Windows\epub3.vcxproj", "{033B6AAA-D741-4696-B687-F5BA0520436F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
