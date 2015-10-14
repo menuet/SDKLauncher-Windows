@@ -172,7 +172,7 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
     bool bRes1 = getResponseSizeAndMime(pRequest->pRawUrl, &size, mimeTxt);
     
     
-    HTTP_RESPONSE http_response;// = { 0, 0 };
+    HTTP_RESPONSE http_response;
     http_response.StatusCode = 200;
     chunk.DataChunkType = HttpDataChunkFromMemory;
 
@@ -198,7 +198,7 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
         {
             setHeader(&http_response, HttpHeaderContentType, mimeTxt.c_str());
             char size_str[MAX_PATH] = { 0 };
-            _itoa(size, size_str, 10);
+            _itoa_s(size, size_str, sizeof(size_str), 10);
             setHeader(&http_response, HttpHeaderContentLength, size_str);
             setHeader(&http_response, HttpHeaderAcceptRanges, "bytes");
         }
@@ -208,7 +208,7 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
         {
             setHeader(&http_response, HttpHeaderContentType, mimeTxt.c_str());
             char size_str[MAX_PATH] = { 0 };
-            _itoa(size, size_str, 10);
+            _itoa_s(size, size_str, sizeof(size_str), 10);
             setHeader(&http_response, HttpHeaderAcceptRanges, "bytes");
 
             // Determine the file portion to send back to the client.
@@ -230,7 +230,7 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
 
                 // Set the Content-range header in the response.
                 CStringA content_range_header;
-                content_range_header.Format("bytes %d-%d/%d", start_file_pos,  end_file_pos, 123/*response.size()*/);
+                content_range_header.Format("bytes %d-%d/%d", start_file_pos, end_file_pos, size_str);
                 setHeader(&http_response, HttpHeaderContentRange, content_range_header);
 
                 // Since this is a range request, we set the http response code to
@@ -243,6 +243,44 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
                 http_response.ReasonLength = static_cast<USHORT>(strlen(kPartialContent));
             }
 
+            if (start_file_pos == 0 && end_file_pos == 0)   // usual case, w/o Range request
+            {
+                bool bRes = getResponseStringAndMime(pRequest->pRawUrl, &bytes, &size, mimeTxt);
+
+                if (bRes)	
+                {
+                    chunk.DataChunkType = HttpDataChunkFromMemory;
+                    chunk.FromMemory.pBuffer = bytes;// pEntityString;
+                    chunk.FromMemory.BufferLength = (ULONG)size;
+                }
+                else
+                {
+                    StatusCode = 503;
+                    pReason = "Error: Not implemented";
+
+                    INITIALIZE_HTTP_RESPONSE(&response, StatusCode, pReason);
+                }
+            }
+            else // range request support
+            {
+                bool bRes = getByteRespBegEnd(pRequest->pRawUrl, start_file_pos, end_file_pos, &bytes, &size, mimeTxt);
+
+                if (bRes)
+                {
+                    chunk.DataChunkType = HttpDataChunkFromMemory;
+                    chunk.FromMemory.pBuffer = bytes;// pEntityString;
+                    chunk.FromMemory.BufferLength = (ULONG)size;
+                }
+                else
+                {
+                    StatusCode = 503;
+                    pReason = "Error: Not implemented";
+
+                    INITIALIZE_HTTP_RESPONSE(&response, StatusCode, pReason);
+
+                }
+
+            }
             // Send back the entire file or part of it.
             //HTTP_BYTE_RANGE byte_range = { 0 };
             //byte_range.StartingOffset.HighPart = 0;
@@ -252,8 +290,12 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
             //}
             //else {
             //    byte_range.Length.QuadPart = end_file_pos - start_file_pos + 1;
-            //chunk.FromMemory.ByteRange = byte_range;
+            //chunk.FromFileHandle.ByteRange = byte_range;
             //chunk.FromFileHandle.FileHandle = get(handle);
+
+            //chunk.FromMemory.BufferLength;
+            //chunk.FromMemory.pBuffer;
+
             http_response.EntityChunkCount = 1;
             http_response.pEntityChunks = &chunk;
             }
@@ -262,6 +304,26 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
         default: break;
     }
 
+    DWORD bytes_sent = 0;
+    int http_response_flag = 0;
+    int ret = ::HttpSendHttpResponse(
+        pRequest,
+        pRequest->RequestId,
+        http_response_flag,
+        &http_response,
+        NULL,
+        &bytes_sent,
+        NULL,
+        0,
+        NULL,
+        NULL);
+    
+    delete[] bytes;
+    
+    if (ret != NO_ERROR) return HRESULT_FROM_WIN32(ret);
+    return S_OK;
+
+    // previous worked code, the above code replaces this
     bool bRes = getResponseStringAndMime(pRequest->pRawUrl, &bytes, &size, mimeTxt);
     
     if (!bRes)	// if failed
