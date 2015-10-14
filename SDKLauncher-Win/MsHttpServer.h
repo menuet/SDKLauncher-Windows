@@ -69,6 +69,8 @@ do                                                          \
 #define FREE_MEM(ptr) HeapFree(GetProcessHeap(), 0, (ptr))
 
 extern bool getResponseStringAndMime(PCSTR rawURL, BYTE** bytes, ULONGLONG* pSize, std::string& mimeTxt);
+bool getResponseSizeAndMime(PCSTR rawURL, ULONGLONG* pSize, std::string& mimeTxt);
+bool getByteRespBegEnd(PCSTR rawURL, ULONGLONG begin, ULONGLONG end, BYTE** bytes, ULONGLONG* pSize, std::string& mimeTxt);
 // TODO: THIS IS the place to create response
 
 class MSHttpAPIWrapper

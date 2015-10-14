@@ -56,12 +56,12 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;_CRTDBG_MAP_ALLOC;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\include;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ePub3;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\Prebuilt\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\include;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ePub3;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\Prebuilt\Include;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ReadiumSDK\Prebuilt\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\Prebuilt\Lib\x86\libxml2_a.lib;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\Prebuilt\Lib\x86\zlib.lib;..\Debug\ePub3.lib;Advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ReadiumSDK\Prebuilt\Lib\x86\libxml2_a.lib;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ReadiumSDK\Prebuilt\Lib\x86\zlib.lib;..\Debug\ePub3.lib;Advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
     </Link>
     <Midl>
@@ -92,7 +92,7 @@ cscript CopyResources.js</Command>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
-      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\include;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ePub3;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\Prebuilt\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\include;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ePub3;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\Prebuilt\Include;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ReadiumSDK\Prebuilt\Include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
     <Link>
@@ -100,7 +100,7 @@ cscript CopyResources.js</Command>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\Prebuilt\Lib\x86\libxml2_a.lib;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\Prebuilt\Lib\x86\zlib.lib;..\Debug\ePub3.lib;Advapi32.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ReadiumSDK\Prebuilt\Lib\x86\libxml2_a.lib;$(MSBuildProjectDirectory)\..\readium-sdk\Platform\Windows\ReadiumSDK\Prebuilt\Lib\x86\zlib.lib;..\Release\ePub3.lib;Advapi32.lib;</AdditionalDependencies>
       <Profile>true</Profile>
     </Link>
     <Midl>

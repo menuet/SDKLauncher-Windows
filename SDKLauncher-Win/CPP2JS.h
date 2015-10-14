@@ -180,6 +180,9 @@ public:
 	~ReadiumJSApi()	{}
 
     bool		    getByteResp(std::string sURI, BYTE** bytes, ULONGLONG* pSize);
+    bool            getByteRespSize(std::string sURI, ULONGLONG* pSize);
+    bool            getByteRespBegEnd(std::string sURI, ULONGLONG begin, ULONGLONG end, BYTE** bytes, ULONGLONG* pSize);
+
     void	        initReadiumSDK();
 
     std::list<std::pair<std::string, std::string> >     getSpineList();

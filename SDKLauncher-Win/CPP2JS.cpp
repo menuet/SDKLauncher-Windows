@@ -158,6 +158,68 @@ void ReadiumJSApi::openEPub3(std::string path)
     
 }
 
+bool ReadiumJSApi::getByteRespBegEnd(std::string sURI, ULONGLONG begin, ULONGLONG end, BYTE** bytes, ULONGLONG* pSize)
+{
+    if (!pkg) {
+        return false;
+    }
+    // TODO: verify begin and end
+
+    std::string str = sURI.substr(1);
+
+    if (str.length() == 0)
+        return false;
+
+    
+    
+    unique_ptr<ByteStream> stream = pkg->ReadStreamForRelativePath(str);
+    ePub3::SeekableByteStream *seekableByteStream = dynamic_cast<ePub3::SeekableByteStream*>(stream.get());
+
+    //ePub3::FilterChainByteStreamRange *filterStream = dynamic_cast<ePub3::FilterChainByteStreamRange *>(m_byteStream.get());
+
+    if (stream && seekableByteStream)
+    {
+        //ByteStream::size_type bytesAvailable = seekableByteStream->BytesAvailable();
+        ByteStream::size_type bytesAvailable = end - begin + 1;
+        seekableByteStream->Seek(begin, std::ios::beg);
+
+        if (bytesAvailable > 0)
+        {
+            char* buf = new char[bytesAvailable];
+            memset(buf, 0, bytesAvailable);
+            stream->ReadBytes(buf, bytesAvailable);
+            *pSize = bytesAvailable;
+            *bytes = (BYTE*)buf;
+            return true;
+        }
+    }
+    return false;
+}
+bool ReadiumJSApi::getByteRespSize(std::string sURI, ULONGLONG* pSize)
+{
+    if (!pkg) {
+        return false;
+    }
+
+    std::string str = sURI.substr(1);
+
+    if (str.length() == 0)
+        return false;
+
+    unique_ptr<ByteStream> stream = pkg->ReadStreamForRelativePath(str);
+    
+    if (stream )
+    {
+        ByteStream::size_type bytesAvailable = stream->BytesAvailable();
+        if (bytesAvailable > 0)
+        {
+            *pSize = bytesAvailable;
+            return true;
+        }
+    }
+    return false;
+}
+
 bool ReadiumJSApi::getByteResp(std::string sURI, BYTE** bytes, ULONGLONG* pSize)
 {
     if (!pkg) {
@@ -547,8 +609,8 @@ void ReadiumJSApi::initReadiumSDK()
 {
     //using namespace	ePub3;
 
-    ePub3::ErrorHandlerFn launcherErrorHandler = LauncherErrorHandler;
-    ePub3::SetErrorHandler(launcherErrorHandler);
+    //ePub3::ErrorHandlerFn launcherErrorHandler = LauncherErrorHandler;
+    //ePub3::SetErrorHandler(launcherErrorHandler);
     
     ePub3::InitializeSdk();
     ePub3::PopulateFilterManager();

@@ -462,6 +462,71 @@ CString getWebServerPath()
 
     return sDirectoryPath;
 }
+
+bool getByteRespBegEnd(PCSTR rawURL, ULONGLONG begin, ULONGLONG end, BYTE** bytes, ULONGLONG* pSize, std::string& mimeTxt)
+{
+    CString path = getWebServerPath();
+    CString filePath = path + rawURL;
+    CString pureURI(rawURL);
+
+    mimeTxt = getMime(pureURI);
+
+    // TRACE("Filepath: %s\n", CT2A(filePath));
+    // TODO: check begin, end
+
+    CFile  fp1;
+    CFileStatus status;
+    if (fp1.GetStatus(filePath, status) == TRUE)
+    {
+        if (fp1.Open(filePath, CFile::modeRead | CFile::typeBinary))
+        {
+            ULONGLONG dwLength = end - begin + 1;// fp1.GetLength();
+            *pSize = dwLength;
+            // make room for whole file, plus null
+            BYTE *buffer = new BYTE[(unsigned int)dwLength];	// TODO:  This limits the buffer size to 4 GB (!)
+            memset(buffer, 0, (unsigned int)dwLength);
+            ULONGLONG lActual = fp1.Seek(begin, CFile::begin);
+            if (lActual != begin)
+                return  false;
+            fp1.Read(buffer, (unsigned int)dwLength); // read whole file
+            *bytes = buffer;
+            //delete [] buffer;
+            fp1.Close();
+            return true;
+        }
+    }
+
+    // don't try to open trivial URLs.  The browser will sometimes request '/', which will cause the lower levels to try and 
+    // open it, which generates a range error.
+    return (CString::StringLength(pureURI) <= 1) ? false : CSDKLauncherWinDlg::pThis->g_cpp2ReadiumJS.getByteRespBegEnd(std::string(CT2CA(pureURI)), begin, end, bytes, pSize);
+
+}
+
+bool getResponseSizeAndMime(PCSTR rawURL, ULONGLONG* pSize, std::string& mimeTxt)
+{
+    CString path = getWebServerPath();
+    CString filePath = path + rawURL;
+    CString pureURI(rawURL);
+
+    mimeTxt = getMime(pureURI);
+    CFile  fp1;
+    CFileStatus status;
+    if (fp1.GetStatus(filePath, status) == TRUE)
+    {
+        if (fp1.Open(filePath, CFile::modeRead | CFile::typeBinary))
+        {
+            ULONGLONG dwLength = fp1.GetLength();
+            *pSize = dwLength;
+            fp1.Close();
+            return true;
+        }
+    }
+
+    // don't try to open trivial URLs.  The browser will sometimes request '/', which will cause the lower levels to try and 
+    // open it, which generates a range error.
+    return (CString::StringLength(pureURI) <= 1) ? false : CSDKLauncherWinDlg::pThis->g_cpp2ReadiumJS.getByteRespSize(std::string(CT2CA(pureURI)), pSize);
+}
+
 bool getResponseStringAndMime(PCSTR rawURL, BYTE** bytes, ULONGLONG* pSize, std::string& mimeTxt)
 {
     CString path = getWebServerPath();

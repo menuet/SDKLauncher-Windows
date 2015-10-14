@@ -47,6 +47,14 @@ void MSHttpAPIWrapper::Cleanup()
     }
     freeBufferMem();
 }
+
+HRESULT setHeader(HTTP_RESPONSE* http_response, HTTP_HEADER_ID header_id, const char* data) 
+{
+    http_response->Headers.KnownHeaders[header_id].pRawValue = data;
+    http_response->Headers.KnownHeaders[header_id].RawValueLength = (USHORT)(strlen(data));
+    return S_OK;
+}
+
 ULONG MSHttpAPIWrapper::DoReceiveRequests()
 {
     ULONG              result;
@@ -145,6 +153,8 @@ ULONG MSHttpAPIWrapper::DoReceiveRequests()
     }
     return result;
 }
+
+
 DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT StatusCode, IN PSTR pReason, IN PSTR pEntityString)
 {
     HTTP_RESPONSE   response;
@@ -152,9 +162,106 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
     DWORD           result;
     DWORD           bytesSent;
 
-    BYTE* bytes = 0;	// TODO:!!!
+    HTTP_DATA_CHUNK chunk;
+    memset(&chunk, 0, sizeof(HTTP_DATA_CHUNK));
+    
+    BYTE* bytes = 0;	
     ULONGLONG size = 0;
     std::string mimeTxt;
+
+    bool bRes1 = getResponseSizeAndMime(pRequest->pRawUrl, &size, mimeTxt);
+    
+    
+    HTTP_RESPONSE http_response;// = { 0, 0 };
+    http_response.StatusCode = 200;
+    chunk.DataChunkType = HttpDataChunkFromMemory;
+
+    switch (pRequest->Verb)
+    {
+        case HttpVerbPOST:
+        {
+            setHeader(&http_response, HttpHeaderContentType, mimeTxt.c_str());
+            
+            chunk.DataChunkType = HttpDataChunkFromMemory;
+            
+            //CString response_str("Nothing!") ;
+            //CStringA request_body_utf8 = CT2A(response_str, CP_UTF8);
+
+            //chunk.FromMemory.pBuffer = request_body_utf8.GetBuffer();
+            //chunk.FromMemory.BufferLength = request_body_utf8.GetLength();
+
+            http_response.EntityChunkCount = 1;
+            http_response.pEntityChunks = &chunk;
+        }
+        break;
+        case HttpVerbHEAD:
+        {
+            setHeader(&http_response, HttpHeaderContentType, mimeTxt.c_str());
+            char size_str[MAX_PATH] = { 0 };
+            _itoa(size, size_str, 10);
+            setHeader(&http_response, HttpHeaderContentLength, size_str);
+            setHeader(&http_response, HttpHeaderAcceptRanges, "bytes");
+        }
+        break;
+
+        case HttpVerbGET:
+        {
+            setHeader(&http_response, HttpHeaderContentType, mimeTxt.c_str());
+            char size_str[MAX_PATH] = { 0 };
+            _itoa(size, size_str, 10);
+            setHeader(&http_response, HttpHeaderAcceptRanges, "bytes");
+
+            // Determine the file portion to send back to the client.
+            // If the client has sent a range request, honor that.
+            int start_file_pos = 0;
+            int end_file_pos = 0;
+            HTTP_REQUEST tmp_request = *pRequest;
+            if (tmp_request.Headers.KnownHeaders[HttpHeaderRange].RawValueLength != 0) 
+            {
+                // The client send a content length header. We need to honor this.
+                CStringA content_range(tmp_request.Headers.KnownHeaders[HttpHeaderRange].pRawValue);
+
+                int idx = content_range.Find('-');
+                //ASSERT1(idx != -1);
+                end_file_pos = atoi(content_range.Right(content_range.GetLength() - idx - 1));
+                int st_idx = content_range.Find('=');
+                //ASSERT1(st_idx != -1);
+                start_file_pos = atoi(content_range.Mid(st_idx + 1, idx));
+
+                // Set the Content-range header in the response.
+                CStringA content_range_header;
+                content_range_header.Format("bytes %d-%d/%d", start_file_pos,  end_file_pos, 123/*response.size()*/);
+                setHeader(&http_response, HttpHeaderContentRange, content_range_header);
+
+                // Since this is a range request, we set the http response code to
+                // partial response.
+                http_response.StatusCode = 206;
+
+                // Set the value of the human readable text to partial-content.
+                const char* const kPartialContent = "Partial Content";
+                http_response.pReason = kPartialContent;
+                http_response.ReasonLength = static_cast<USHORT>(strlen(kPartialContent));
+            }
+
+            // Send back the entire file or part of it.
+            //HTTP_BYTE_RANGE byte_range = { 0 };
+            //byte_range.StartingOffset.HighPart = 0;
+            //byte_range.StartingOffset.LowPart = start_file_pos;
+            //if (end_file_pos == 0) {
+            //    byte_range.Length.QuadPart = HTTP_BYTE_RANGE_TO_EOF;
+            //}
+            //else {
+            //    byte_range.Length.QuadPart = end_file_pos - start_file_pos + 1;
+            //chunk.FromMemory.ByteRange = byte_range;
+            //chunk.FromFileHandle.FileHandle = get(handle);
+            http_response.EntityChunkCount = 1;
+            http_response.pEntityChunks = &chunk;
+            }
+
+            break;
+        default: break;
+    }
+
     bool bRes = getResponseStringAndMime(pRequest->pRawUrl, &bytes, &size, mimeTxt);
     
     if (!bRes)	// if failed
