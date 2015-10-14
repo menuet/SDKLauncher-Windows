@@ -47,14 +47,15 @@ void MSHttpAPIWrapper::Cleanup()
     }
     freeBufferMem();
 }
-
+/*
 HRESULT setHeader(HTTP_RESPONSE* http_response, HTTP_HEADER_ID header_id, const char* data) 
 {
-    http_response->Headers.KnownHeaders[header_id].pRawValue = data;
-    http_response->Headers.KnownHeaders[header_id].RawValueLength = (USHORT)(strlen(data));
+    ADD_KNOWN_HEADER(*http_response, header_id, data);
+    //http_response->Headers.KnownHeaders[header_id].pRawValue = data;
+    //http_response->Headers.KnownHeaders[header_id].RawValueLength = (USHORT)(strlen(data));
     return S_OK;
 }
-
+*/
 ULONG MSHttpAPIWrapper::DoReceiveRequests()
 {
     ULONG              result;
@@ -157,33 +158,61 @@ ULONG MSHttpAPIWrapper::DoReceiveRequests()
 
 DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT StatusCode, IN PSTR pReason, IN PSTR pEntityString)
 {
-    HTTP_RESPONSE   response;
-    HTTP_DATA_CHUNK dataChunk;
-    DWORD           result;
-    DWORD           bytesSent;
-
+#if 1
     HTTP_DATA_CHUNK chunk;
     memset(&chunk, 0, sizeof(HTTP_DATA_CHUNK));
     
     BYTE* bytes = 0;	
     ULONGLONG size = 0;
     std::string mimeTxt;
+   
 
     bool bRes1 = getResponseSizeAndMime(pRequest->pRawUrl, &size, mimeTxt);
-    
+   
     
     HTTP_RESPONSE http_response;
-    http_response.StatusCode = 200;
+    INITIALIZE_HTTP_RESPONSE(&http_response, StatusCode, pReason);
     chunk.DataChunkType = HttpDataChunkFromMemory;
 
-    switch (pRequest->Verb)
+    ADD_KNOWN_HEADER(http_response, HttpHeaderContentType, "text/html");
+
+
+    if (!bRes1)	// if failed
     {
+        StatusCode = 503;
+        pReason = "Error: Not implemented";
+
+        INITIALIZE_HTTP_RESPONSE(&http_response, StatusCode, pReason);
+        //
+        // Add a known header.
+        //
+
+        //[1]
+        //CStringA strA(mimeTxt); // a helper string
+        //LPCSTR ptr = strA;
+        ADD_KNOWN_HEADER(http_response, HttpHeaderContentType, "text/html");
+
+        if (pEntityString)
+        {
+            // Add an entity chunk.
+            chunk.DataChunkType = HttpDataChunkFromMemory;
+            chunk.FromMemory.pBuffer = pEntityString;
+            chunk.FromMemory.BufferLength = 4;
+            http_response.EntityChunkCount = 1;
+            http_response.pEntityChunks = &chunk;
+        }
+    }
+    else
+    {
+        ADD_KNOWN_HEADER(http_response, HttpHeaderContentType, mimeTxt.c_str());
+        switch (pRequest->Verb)
+        {
         case HttpVerbPOST:
         {
-            setHeader(&http_response, HttpHeaderContentType, mimeTxt.c_str());
-            
+            ADD_KNOWN_HEADER(http_response, HttpHeaderContentType, mimeTxt.c_str());
+
             chunk.DataChunkType = HttpDataChunkFromMemory;
-            
+
             //CString response_str("Nothing!") ;
             //CStringA request_body_utf8 = CT2A(response_str, CP_UTF8);
 
@@ -193,30 +222,30 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
             http_response.EntityChunkCount = 1;
             http_response.pEntityChunks = &chunk;
         }
-        break;
+            break;
         case HttpVerbHEAD:
         {
-            setHeader(&http_response, HttpHeaderContentType, mimeTxt.c_str());
+            ADD_KNOWN_HEADER(http_response, HttpHeaderContentType, mimeTxt.c_str());
             char size_str[MAX_PATH] = { 0 };
             _itoa_s(size, size_str, sizeof(size_str), 10);
-            setHeader(&http_response, HttpHeaderContentLength, size_str);
-            setHeader(&http_response, HttpHeaderAcceptRanges, "bytes");
+            ADD_KNOWN_HEADER(http_response, HttpHeaderContentLength, size_str);
+            ADD_KNOWN_HEADER(http_response, HttpHeaderAcceptRanges, "bytes");
         }
-        break;
+            break;
 
         case HttpVerbGET:
         {
-            setHeader(&http_response, HttpHeaderContentType, mimeTxt.c_str());
+            ADD_KNOWN_HEADER(http_response, HttpHeaderContentType, mimeTxt.c_str());
             char size_str[MAX_PATH] = { 0 };
             _itoa_s(size, size_str, sizeof(size_str), 10);
-            setHeader(&http_response, HttpHeaderAcceptRanges, "bytes");
+            ADD_KNOWN_HEADER(http_response, HttpHeaderAcceptRanges, "bytes");
 
             // Determine the file portion to send back to the client.
             // If the client has sent a range request, honor that.
             int start_file_pos = 0;
             int end_file_pos = 0;
             HTTP_REQUEST tmp_request = *pRequest;
-            if (tmp_request.Headers.KnownHeaders[HttpHeaderRange].RawValueLength != 0) 
+            if (tmp_request.Headers.KnownHeaders[HttpHeaderRange].RawValueLength != 0)
             {
                 // The client send a content length header. We need to honor this.
                 CStringA content_range(tmp_request.Headers.KnownHeaders[HttpHeaderRange].pRawValue);
@@ -231,7 +260,7 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
                 // Set the Content-range header in the response.
                 CStringA content_range_header;
                 content_range_header.Format("bytes %d-%d/%d", start_file_pos, end_file_pos, size_str);
-                setHeader(&http_response, HttpHeaderContentRange, content_range_header);
+                ADD_KNOWN_HEADER(http_response, HttpHeaderContentRange, content_range_header);
 
                 // Since this is a range request, we set the http response code to
                 // partial response.
@@ -245,25 +274,8 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
 
             if (start_file_pos == 0 && end_file_pos == 0)   // usual case, w/o Range request
             {
-                bool bRes = getResponseStringAndMime(pRequest->pRawUrl, &bytes, &size, mimeTxt);
-
-                if (bRes)	
-                {
-                    chunk.DataChunkType = HttpDataChunkFromMemory;
-                    chunk.FromMemory.pBuffer = bytes;// pEntityString;
-                    chunk.FromMemory.BufferLength = (ULONG)size;
-                }
-                else
-                {
-                    StatusCode = 503;
-                    pReason = "Error: Not implemented";
-
-                    INITIALIZE_HTTP_RESPONSE(&response, StatusCode, pReason);
-                }
-            }
-            else // range request support
-            {
-                bool bRes = getByteRespBegEnd(pRequest->pRawUrl, start_file_pos, end_file_pos, &bytes, &size, mimeTxt);
+                std::string sTmp;
+                bool bRes = getResponseStringAndMime(pRequest->pRawUrl, &bytes, &size, sTmp);
 
                 if (bRes)
                 {
@@ -276,7 +288,26 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
                     StatusCode = 503;
                     pReason = "Error: Not implemented";
 
-                    INITIALIZE_HTTP_RESPONSE(&response, StatusCode, pReason);
+                    INITIALIZE_HTTP_RESPONSE(&http_response, StatusCode, pReason);
+                }
+            }
+            else // range request support
+            {
+                std::string sTmp;
+                bool bRes = getByteRespBegEnd(pRequest->pRawUrl, start_file_pos, end_file_pos, &bytes, &size, sTmp);
+
+                if (bRes)
+                {
+                    chunk.DataChunkType = HttpDataChunkFromMemory;
+                    chunk.FromMemory.pBuffer = bytes;// pEntityString;
+                    chunk.FromMemory.BufferLength = (ULONG)size;
+                }
+                else
+                {
+                    StatusCode = 503;
+                    pReason = "Error: Not implemented";
+
+                    INITIALIZE_HTTP_RESPONSE(&http_response, StatusCode, pReason);
 
                 }
 
@@ -296,18 +327,19 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
             //chunk.FromMemory.BufferLength;
             //chunk.FromMemory.pBuffer;
 
+
             http_response.EntityChunkCount = 1;
             http_response.pEntityChunks = &chunk;
-            }
+        }
 
             break;
         default: break;
+        }
     }
-
     DWORD bytes_sent = 0;
     int http_response_flag = 0;
     int ret = ::HttpSendHttpResponse(
-        pRequest,
+        hReqQueue,
         pRequest->RequestId,
         http_response_flag,
         &http_response,
@@ -322,6 +354,15 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
     
     if (ret != NO_ERROR) return HRESULT_FROM_WIN32(ret);
     return S_OK;
+
+#else
+    HTTP_RESPONSE   response;
+    HTTP_DATA_CHUNK dataChunk;
+    DWORD           result;
+    DWORD           bytesSent;
+    BYTE* bytes = 0;
+    ULONGLONG size = 0;
+    std::string mimeTxt;
 
     // previous worked code, the above code replaces this
     bool bRes = getResponseStringAndMime(pRequest->pRawUrl, &bytes, &size, mimeTxt);
@@ -427,6 +468,8 @@ DWORD MSHttpAPIWrapper::SendHttpResponse(IN PHTTP_REQUEST pRequest, IN USHORT St
     delete [] bytes;
 
     return result;
+#endif
+
 }
 UINT MSHttpAPIWrapper::MSHTTPServerThread(void* pThis_)
 {
